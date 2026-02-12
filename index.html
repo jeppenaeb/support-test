@@ -12,8 +12,7 @@
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .actions { margin-top: 18px; display: flex; gap: 10px; align-items: center; }
     button { padding: 10px 14px; cursor: pointer; }
-    .hint { color: #444; font-size: 0.95rem; margin-top: 10px; }
-    .error { color: #b00020; margin-top: 10px; }
+    .msg { margin-top: 12px; }
   </style>
 </head>
 <body>
@@ -21,7 +20,7 @@
 
   <form id="supportForm">
     <label for="email">Din e-mail-adresse:</label>
-    <input id="email" name="email" type="email" placeholder="fx navn@organisation.dk" required />
+    <input id="email" name="email" type="email" required />
 
     <div class="row">
       <div>
@@ -34,71 +33,68 @@
       </div>
       <div>
         <label for="topic">Topic:</label>
-        <input id="topic" name="topic" type="text" placeholder="Kort emne" required />
+        <input id="topic" name="topic" type="text" required />
       </div>
     </div>
 
     <label for="body">Body:</label>
-    <textarea id="body" name="body" placeholder="Beskriv din sag så konkret som muligt…" required></textarea>
+    <textarea id="body" name="body" required></textarea>
 
     <div class="actions">
-      <button type="submit">Send</button>
+      <button type="submit" id="sendBtn">Send</button>
       <button type="button" id="clearBtn">Ryd</button>
     </div>
 
-    <div class="hint">
-      Når du trykker “Send”, åbnes din mailklient med en kladde til <b>support.e-grant@ufm.dk</b>.
-    </div>
-    <div id="error" class="error" aria-live="polite"></div>
+    <div id="msg" class="msg" aria-live="polite"></div>
   </form>
 
   <script>
-    (function () {
-      const form = document.getElementById("supportForm");
-      const errorEl = document.getElementById("error");
-      const clearBtn = document.getElementById("clearBtn");
+    const form = document.getElementById("supportForm");
+    const msg = document.getElementById("msg");
+    const sendBtn = document.getElementById("sendBtn");
+    const clearBtn = document.getElementById("clearBtn");
 
-      function encodeMailto(str) {
-        // mailto-encoding (inkl. linjeskift)
-        return encodeURIComponent(str).replace(/%20/g, "+");
-      }
+    // Sæt din deployede API URL her (efter Vercel deploy)
+    const API_BASE = "https://DIN-VERCEL-APP.vercel.app"; // <-- ændr
 
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        errorEl.textContent = "";
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.textContent = "";
+      sendBtn.disabled = true;
 
-        const email = document.getElementById("email").value.trim();
-        const area = document.getElementById("area").value;
-        const topic = document.getElementById("topic").value.trim();
-        const body = document.getElementById("body").value.trim();
+      const payload = {
+        email: document.getElementById("email").value.trim(),
+        area: document.getElementById("area").value,
+        topic: document.getElementById("topic").value.trim(),
+        body: document.getElementById("body").value.trim()
+      };
 
-        if (!email || !area || !topic || !body) {
-          errorEl.textContent = "Udfyld venligst alle felter.";
-          return;
+      try {
+        const res = await fetch(`${API_BASE}/api/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data?.error || `Fejl: ${res.status}`);
         }
 
-        const to = "support.e-grant@ufm.dk";
-
-        // Byg et pænt subject og body
-        const subject = `[${area}] ${topic}`;
-        const message =
-`Fra: ${email}
-Område: ${area}
-Topic: ${topic}
-
-${body}`;
-
-        const mailtoUrl = `mailto:${to}?subject=${encodeMailto(subject)}&body=${encodeMailto(message)}`;
-
-        // Åbn mailklient
-        window.location.href = mailtoUrl;
-      });
-
-      clearBtn.addEventListener("click", function () {
+        msg.textContent = "✅ Mail sendt til support.";
         form.reset();
-        errorEl.textContent = "";
-      });
-    })();
+      } catch (err) {
+        msg.textContent = "❌ Kunne ikke sende mail: " + err.message;
+      } finally {
+        sendBtn.disabled = false;
+      }
+    });
+
+    clearBtn.addEventListener("click", () => {
+      form.reset();
+      msg.textContent = "";
+    });
   </script>
 </body>
 </html>

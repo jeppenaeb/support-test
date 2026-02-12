@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kontakt support (e-grant)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; max-width: 760px; }
+    label { display: block; font-weight: 600; margin-top: 14px; }
+    input, select, textarea { width: 100%; padding: 10px; margin-top: 6px; box-sizing: border-box; }
+    textarea { min-height: 180px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .actions { margin-top: 18px; display: flex; gap: 10px; align-items: center; }
+    button { padding: 10px 14px; cursor: pointer; }
+    .hint { color: #444; font-size: 0.95rem; margin-top: 10px; }
+    .error { color: #b00020; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Kontakt support (e-grant)</h1>
+
+  <form id="supportForm">
+    <label for="email">Din e-mail-adresse:</label>
+    <input id="email" name="email" type="email" placeholder="fx navn@organisation.dk" required />
+
+    <div class="row">
+      <div>
+        <label for="area">Område:</label>
+        <select id="area" name="area" required>
+          <option value="" selected disabled>Vælg…</option>
+          <option value="Ansøgning">Ansøgning</option>
+          <option value="Bevilling">Bevilling</option>
+        </select>
+      </div>
+      <div>
+        <label for="topic">Topic:</label>
+        <input id="topic" name="topic" type="text" placeholder="Kort emne" required />
+      </div>
+    </div>
+
+    <label for="body">Body:</label>
+    <textarea id="body" name="body" placeholder="Beskriv din sag så konkret som muligt…" required></textarea>
+
+    <div class="actions">
+      <button type="submit">Send</button>
+      <button type="button" id="clearBtn">Ryd</button>
+    </div>
+
+    <div class="hint">
+      Når du trykker “Send”, åbnes din mailklient med en kladde til <b>support.e-grant@ufm.dk</b>.
+    </div>
+    <div id="error" class="error" aria-live="polite"></div>
+  </form>
+
+  <script>
+    (function () {
+      const form = document.getElementById("supportForm");
+      const errorEl = document.getElementById("error");
+      const clearBtn = document.getElementById("clearBtn");
+
+      function encodeMailto(str) {
+        // mailto-encoding (inkl. linjeskift)
+        return encodeURIComponent(str).replace(/%20/g, "+");
+      }
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errorEl.textContent = "";
+
+        const email = document.getElementById("email").value.trim();
+        const area = document.getElementById("area").value;
+        const topic = document.getElementById("topic").value.trim();
+        const body = document.getElementById("body").value.trim();
+
+        if (!email || !area || !topic || !body) {
+          errorEl.textContent = "Udfyld venligst alle felter.";
+          return;
+        }
+
+        const to = "support.e-grant@ufm.dk";
+
+        // Byg et pænt subject og body
+        const subject = `[${area}] ${topic}`;
+        const message =
+`Fra: ${email}
+Område: ${area}
+Topic: ${topic}
+
+${body}`;
+
+        const mailtoUrl = `mailto:${to}?subject=${encodeMailto(subject)}&body=${encodeMailto(message)}`;
+
+        // Åbn mailklient
+        window.location.href = mailtoUrl;
+      });
+
+      clearBtn.addEventListener("click", function () {
+        form.reset();
+        errorEl.textContent = "";
+      });
+    })();
+  </script>
+</body>
+</html>
